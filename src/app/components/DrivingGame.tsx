@@ -1,6 +1,161 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+
+// ── Sound helpers ─────────────────────────────────────────────────
+function playTone(freq: number, duration: number, type: OscillatorType = "sine", vol = 0.15) {
+  try {
+    const ctx = new AudioContext();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = type;
+    osc.frequency.value = freq;
+    gain.gain.value = vol;
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + duration);
+  } catch {}
+}
+
+function playCollectSound() {
+  playTone(880, 0.1, "sine", 0.12);
+  setTimeout(() => playTone(1100, 0.15, "sine", 0.1), 80);
+}
+
+function playHonkSound() {
+  playTone(400, 0.15, "square", 0.08);
+  setTimeout(() => playTone(500, 0.2, "square", 0.08), 100);
+}
+
+function playRefuelSound() {
+  playTone(300, 0.1, "sine", 0.1);
+  setTimeout(() => playTone(400, 0.1, "sine", 0.1), 100);
+  setTimeout(() => playTone(500, 0.15, "sine", 0.1), 200);
+}
+
+function playVictorySound() {
+  [523, 659, 784, 1047].forEach((f, i) =>
+    setTimeout(() => playTone(f, 0.3, "sine", 0.12), i * 150)
+  );
+}
+
+// ── Background music (looping procedural soundtrack) ──────────────
+class Soundtrack {
+  private ctx: AudioContext | null = null;
+  private gainNode: GainNode | null = null;
+  private playing = false;
+  private intervalIds: ReturnType<typeof setInterval>[] = [];
+  private timeoutIds: ReturnType<typeof setTimeout>[] = [];
+
+  // Fun upbeat melody notes (C major pentatonic patterns)
+  private melodyPatterns = [
+    [523, 587, 659, 784, 659, 587], // C D E G E D
+    [784, 659, 523, 587, 659, 784], // G E C D E G
+    [523, 659, 784, 1047, 784, 659], // C E G C' G E
+    [587, 659, 784, 659, 523, 587], // D E G E C D
+  ];
+  private patternIndex = 0;
+
+  start() {
+    if (this.playing) return;
+    try {
+      this.ctx = new AudioContext();
+      this.gainNode = this.ctx.createGain();
+      this.gainNode.gain.value = 0.06;
+      this.gainNode.connect(this.ctx.destination);
+      this.playing = true;
+
+      // Bass line - steady quarter notes
+      let bassStep = 0;
+      const bassNotes = [131, 165, 147, 175]; // C3 E3 D3 F3
+      const bassId = setInterval(() => {
+        if (!this.ctx || !this.gainNode) return;
+        const osc = this.ctx.createOscillator();
+        const g = this.ctx.createGain();
+        osc.type = "triangle";
+        osc.frequency.value = bassNotes[bassStep % bassNotes.length];
+        g.gain.value = 0.08;
+        g.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.35);
+        osc.connect(g);
+        g.connect(this.gainNode!);
+        osc.start();
+        osc.stop(this.ctx.currentTime + 0.4);
+        bassStep++;
+      }, 400);
+      this.intervalIds.push(bassId);
+
+      // Melody line - plays pattern notes
+      let noteIndex = 0;
+      const melodyId = setInterval(() => {
+        if (!this.ctx || !this.gainNode) return;
+        const pattern = this.melodyPatterns[this.patternIndex % this.melodyPatterns.length];
+        const freq = pattern[noteIndex % pattern.length];
+        const osc = this.ctx.createOscillator();
+        const g = this.ctx.createGain();
+        osc.type = "sine";
+        osc.frequency.value = freq;
+        g.gain.value = 0.05;
+        g.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.25);
+        osc.connect(g);
+        g.connect(this.gainNode!);
+        osc.start();
+        osc.stop(this.ctx.currentTime + 0.3);
+        noteIndex++;
+        if (noteIndex >= pattern.length) {
+          noteIndex = 0;
+          this.patternIndex++;
+        }
+      }, 300);
+      this.intervalIds.push(melodyId);
+
+      // Light percussion - hi-hat pattern
+      let percStep = 0;
+      const percId = setInterval(() => {
+        if (!this.ctx || !this.gainNode) return;
+        const osc = this.ctx.createOscillator();
+        const g = this.ctx.createGain();
+        osc.type = "square";
+        osc.frequency.value = percStep % 2 === 0 ? 1200 : 800;
+        g.gain.value = percStep % 4 === 0 ? 0.02 : 0.01;
+        g.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.05);
+        osc.connect(g);
+        g.connect(this.gainNode!);
+        osc.start();
+        osc.stop(this.ctx.currentTime + 0.06);
+        percStep++;
+      }, 200);
+      this.intervalIds.push(percId);
+    } catch {}
+  }
+
+  stop() {
+    this.playing = false;
+    this.intervalIds.forEach(clearInterval);
+    this.timeoutIds.forEach(clearTimeout);
+    this.intervalIds = [];
+    this.timeoutIds = [];
+    if (this.ctx) {
+      this.ctx.close().catch(() => {});
+      this.ctx = null;
+      this.gainNode = null;
+    }
+  }
+
+  get isPlaying() { return this.playing; }
+}
+
+function speak(text: string) {
+  try {
+    window.speechSynthesis.cancel();
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.rate = 1.0;
+    utter.pitch = 1.2;
+    utter.volume = 0.9;
+    window.speechSynthesis.speak(utter);
+  } catch {}
+}
 
 // ── Types ──────────────────────────────────────────────────────────
 interface Vec2 { x: number; y: number }
@@ -39,9 +194,9 @@ const CW = 700, CH = 500;
 const CAR_W = 26, CAR_H = 44;
 const TURN_SPEED = 4, ACCEL = 0.15, FRICTION = 0.97, MAX_SPD = 5;
 const COLL_SIZE = 28;
-const MAX_FUEL = 100, FUEL_DRAIN = 0.08, FUEL_REFILL = 50;
+const MAX_FUEL = 100, FUEL_DRAIN = 0.03, FUEL_REFILL = 60;
 const INTERACT_RANGE = 50, GAS_RANGE = 55;
-const ROAD_WIDTH = 60; // half-width of road band
+const ROAD_HALF = 30; // half-width of road band
 
 // ── Pup vehicles (race car themed) ────────────────────────────────
 const PUPS: PupVehicle[] = [
@@ -246,7 +401,7 @@ const fig8Track: TrackDef = {
   startAngle: -90,
   gasStation: { x: 320, y: 10, w: 60, h: 45 },
   locations: makeLocations([
-    { x: 310, y: 210 }, { x: 10, y: 15 }, { x: 590, y: 15 },
+    { x: 180, y: 215 }, { x: 10, y: 15 }, { x: 590, y: 15 },
     { x: 10, y: 420 }, { x: 590, y: 420 },
   ]),
   collectiblePoints: [
@@ -307,7 +462,90 @@ const fig8Track: TrackDef = {
   ),
 };
 
-const ALL_TRACKS: TrackDef[] = [circleTrack, ovalTrack, fig8Track];
+// ── Grand Prix Track (corners & straights) ────────────────────────
+// Centerline waypoints forming a closed loop
+const GP_POINTS: Vec2[] = [
+  { x: 120, y: 70 },  // 0: top-left
+  { x: 580, y: 70 },  // 1: top-right
+  { x: 630, y: 120 }, // 2: TR corner
+  { x: 630, y: 200 }, // 3: right upper
+  { x: 480, y: 250 }, // 4: chicane in
+  { x: 630, y: 300 }, // 5: chicane out
+  { x: 630, y: 400 }, // 6: right lower
+  { x: 580, y: 440 }, // 7: BR corner
+  { x: 350, y: 440 }, // 8: bottom mid
+  { x: 280, y: 380 }, // 9: hairpin apex
+  { x: 200, y: 440 }, // 10: hairpin exit
+  { x: 120, y: 440 }, // 11: BL
+  { x: 70, y: 400 },  // 12: BL corner
+  { x: 70, y: 120 },  // 13: left straight
+  { x: 120, y: 70 },  // 14: back to start (closed)
+];
+
+function distToSegment(px: number, py: number, ax: number, ay: number, bx: number, by: number): number {
+  const dx = bx - ax, dy = by - ay;
+  const len2 = dx * dx + dy * dy;
+  if (len2 === 0) return Math.hypot(px - ax, py - ay);
+  let t = ((px - ax) * dx + (py - ay) * dy) / len2;
+  t = Math.max(0, Math.min(1, t));
+  return Math.hypot(px - (ax + t * dx), py - (ay + t * dy));
+}
+
+function gpRoadCheck(x: number, y: number): boolean {
+  for (let i = 0; i < GP_POINTS.length - 1; i++) {
+    const a = GP_POINTS[i], b = GP_POINTS[i + 1];
+    if (distToSegment(x, y, a.x, a.y, b.x, b.y) < ROAD_HALF + 15) return true;
+  }
+  return false;
+}
+
+function gpCollectiblePoints(): Vec2[] {
+  const pts: Vec2[] = [];
+  for (let i = 0; i < GP_POINTS.length - 1; i++) {
+    const a = GP_POINTS[i], b = GP_POINTS[i + 1];
+    pts.push({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 });
+  }
+  return pts;
+}
+
+function gpSvgPath(): string {
+  return GP_POINTS.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x},${p.y}`).join(" ");
+}
+
+const gpTrack: TrackDef = {
+  id: "grandprix", name: "Grand Prix", emoji: "🏎️",
+  description: "Corners, chicanes & a hairpin!",
+  isOnRoad: gpRoadCheck,
+  startPos: { x: 130, y: 50 },
+  startAngle: 0,
+  gasStation: { x: 350, y: 150, w: 55, h: 45 },
+  locations: makeLocations([
+    { x: 250, y: 150 }, { x: 10, y: 10 }, { x: 480, y: 150 },
+    { x: 130, y: 340 }, { x: 440, y: 340 },
+  ]),
+  collectiblePoints: gpCollectiblePoints(),
+  renderRoad: () => (
+    <svg className="absolute inset-0" width={CW} height={CH} style={{ pointerEvents: "none" }}>
+      {/* Road surface */}
+      <path d={gpSvgPath()} fill="none" stroke="#6B7280" strokeWidth={ROAD_HALF * 2}
+        strokeLinejoin="round" strokeLinecap="round" />
+      {/* Yellow edge lines */}
+      <path d={gpSvgPath()} fill="none" stroke="#FCD34D" strokeWidth={ROAD_HALF * 2 + 6}
+        strokeLinejoin="round" strokeLinecap="round" opacity="0.5" />
+      <path d={gpSvgPath()} fill="none" stroke="#6B7280" strokeWidth={ROAD_HALF * 2 - 2}
+        strokeLinejoin="round" strokeLinecap="round" />
+    </svg>
+  ),
+  renderDashes: () => (
+    <svg className="absolute inset-0" width={CW} height={CH} style={{ pointerEvents: "none" }}>
+      <path d={gpSvgPath()} fill="none" stroke="white" strokeWidth={2}
+        strokeLinejoin="round" strokeLinecap="round"
+        strokeDasharray="12 18" opacity="0.5" />
+    </svg>
+  ),
+};
+
+const ALL_TRACKS: TrackDef[] = [circleTrack, ovalTrack, fig8Track, gpTrack];
 
 // ── Helpers ───────────────────────────────────────────────────────
 function generateCollectibles(points: Vec2[]): Collectible[] {
@@ -342,6 +580,8 @@ function nearLocation(x: number, y: number, locations: LocationZone[]): Location
 export default function DrivingGame() {
   const [phase, setPhase] = useState<"track" | "pup" | "playing">("track");
   const [track, setTrack] = useState<TrackDef>(ALL_TRACKS[0]);
+  const trackRoad = useMemo(() => track.renderRoad(), [track.id]);
+  const trackDashes = useMemo(() => track.renderDashes(), [track.id]);
   const [pup, setPup] = useState<PupVehicle>(PUPS[0]);
   const [pos, setPos] = useState<Vec2>({ x: 0, y: 0 });
   const [angle, setAngle] = useState(0);
@@ -358,6 +598,8 @@ export default function DrivingGame() {
   const [finished, setFinished] = useState(false);
   const [outOfGas, setOutOfGas] = useState(false);
 
+  const [musicOn, setMusicOn] = useState(true);
+  const soundtrackRef = useRef<Soundtrack | null>(null);
   const keysRef = useRef<Set<string>>(new Set());
   const animRef = useRef<number | null>(null);
   const posRef = useRef(pos);
@@ -372,6 +614,18 @@ export default function DrivingGame() {
   fuelRef.current = fuel;
   trackRef.current = track;
 
+  // Soundtrack management
+  useEffect(() => {
+    if (phase === "playing" && musicOn && !finished) {
+      if (!soundtrackRef.current) soundtrackRef.current = new Soundtrack();
+      soundtrackRef.current.start();
+    } else {
+      soundtrackRef.current?.stop();
+      soundtrackRef.current = null;
+    }
+    return () => { soundtrackRef.current?.stop(); soundtrackRef.current = null; };
+  }, [phase, musicOn, finished]);
+
   const allCollected = collectibles.every((c) => c.collected);
   const allVisited = track.locations.every((l) => visited.has(l.id));
   const missionDone = allCollected && allVisited;
@@ -380,6 +634,8 @@ export default function DrivingGame() {
     if (missionDone && !finished && phase === "playing") {
       setFinished(true);
       setMsg("");
+      playVictorySound();
+      speak("Patrol complete! No job is too big, no pup is too small!");
     }
   }, [missionDone, finished, phase]);
 
@@ -390,6 +646,7 @@ export default function DrivingGame() {
     setCollectibles(generateCollectibles(t.collectiblePoints));
     setVisited(new Set()); setFinished(false); setOutOfGas(false);
     setBubble(null); setMsg(`${p.name} is on the case!`);
+    speak(`${p.name} is on the case!`);
   };
 
   // ── Key handlers ────────────────────────────────────────────────
@@ -403,6 +660,7 @@ export default function DrivingGame() {
           setFuel((f) => { const n = Math.min(f + FUEL_REFILL, MAX_FUEL); fuelRef.current = n; return n; });
           setOutOfGas(false);
           setMsg("Fuel tank filled up! ⛽");
+          playRefuelSound();
           return;
         }
         const loc = nearLocation(posRef.current.x, posRef.current.y, t.locations);
@@ -413,9 +671,11 @@ export default function DrivingGame() {
             return s;
           });
           setBubble({ text: loc.interactionMessage, emoji: loc.interactionEmoji, locId: loc.id });
+          speak(loc.interactionMessage);
           setTimeout(() => setBubble(null), 3000);
         } else {
           setHonking(true); setTimeout(() => setHonking(false), 300);
+          playHonkSound();
         }
       }
     };
@@ -434,7 +694,7 @@ export default function DrivingGame() {
     const curFuel = fuelRef.current;
 
     if (curFuel <= 0) {
-      setOutOfGas(true);
+      if (!outOfGas) { setOutOfGas(true); speak("Oh no! Out of gas!"); }
       setNearGas(nearRect(posRef.current.x, posRef.current.y, t.gasStation, GAS_RANGE));
       animRef.current = requestAnimationFrame(gameLoop);
       return;
@@ -469,7 +729,7 @@ export default function DrivingGame() {
     if (Math.abs(s) > 0.1) {
       const nf = Math.max(0, curFuel - FUEL_DRAIN * Math.abs(s));
       fuelRef.current = nf; setFuel(nf);
-      if (nf < 20 && nf > 19.5) setMsg("Low fuel! Find the gas station! ⛽");
+      if (nf < 20 && nf > 19.5) { setMsg("Low fuel! Find the gas station! ⛽"); speak("Low fuel! Find the gas station!"); }
     }
 
     speedRef.current = s; setSpeed(s);
@@ -484,7 +744,7 @@ export default function DrivingGame() {
       const upd = prev.map((c) => {
         if (c.collected) return c;
         if (Math.hypot(nx + CAR_W / 2 - (c.x + COLL_SIZE / 2), ny + CAR_H / 2 - (c.y + COLL_SIZE / 2)) < (CAR_W + COLL_SIZE) / 2) {
-          changed = true; setScore((sc) => sc + c.points); setMsg(`+${c.points} ${c.emoji}`);
+          changed = true; setScore((sc) => sc + c.points); setMsg(`+${c.points} ${c.emoji}`); playCollectSound();
           return { ...c, collected: true };
         }
         return c;
@@ -592,21 +852,27 @@ export default function DrivingGame() {
             {Math.round(fuel)}%
           </span>
         </div>
+        <button onClick={() => setMusicOn((m) => !m)}
+          className="px-2 py-1 rounded-lg bg-white/20 text-white text-xs hover:bg-white/30">
+          {musicOn ? "🔊" : "🔇"}
+        </button>
         <button onClick={() => setPhase("track")}
           className="px-2 py-1 rounded-lg bg-white/20 text-white text-xs hover:bg-white/30">
           Menu
         </button>
       </div>
 
-      {msg && <div className="text-lg font-bold text-yellow-300 mb-1 animate-bounce drop-shadow-lg">{msg}</div>}
-      {nearGas && !bubble && !finished && !outOfGas && (
-        <div className="text-xs font-semibold text-white bg-black/40 px-3 py-1 rounded-full mb-1">Press Space to refuel! ⛽</div>
-      )}
-      {nearLoc && !nearGas && !bubble && !finished && (
-        <div className="text-xs font-semibold text-white bg-black/40 px-3 py-1 rounded-full mb-1">
-          Press Space to talk to {nearLoc.label}! {nearLoc.emoji}
-        </div>
-      )}
+      <div className="h-7 flex items-center justify-center">
+        {msg && <div className="text-lg font-bold text-yellow-300 drop-shadow-lg">{msg}</div>}
+        {!msg && nearGas && !bubble && !finished && !outOfGas && (
+          <div className="text-xs font-semibold text-white bg-black/40 px-3 py-1 rounded-full">Press Space to refuel! ⛽</div>
+        )}
+        {!msg && nearLoc && !nearGas && !bubble && !finished && (
+          <div className="text-xs font-semibold text-white bg-black/40 px-3 py-1 rounded-full">
+            Press Space to talk to {nearLoc.label}! {nearLoc.emoji}
+          </div>
+        )}
+      </div>
 
       {/* Canvas */}
       <div className="relative rounded-xl border-4 border-white/30 overflow-hidden"
@@ -618,8 +884,8 @@ export default function DrivingGame() {
         }} />
 
         {/* Road */}
-        {track.renderRoad()}
-        {track.renderDashes()}
+        {trackRoad}
+        {trackDashes}
 
         {/* Locations */}
         {track.locations.map((loc) => {
@@ -655,9 +921,11 @@ export default function DrivingGame() {
         {bubble && (() => {
           const loc = track.locations.find((l) => l.id === bubble.locId);
           if (!loc) return null;
+          const bx = Math.max(5, Math.min(loc.x + loc.w / 2 - 100, CW - 210));
+          const by = loc.y - 65 >= 5 ? loc.y - 65 : loc.y + loc.h + 10;
           return (
-            <div className="absolute bg-white rounded-xl px-3 py-2 shadow-lg border-2 border-yellow-400 z-30 max-w-[200px] animate-bounce"
-              style={{ left: Math.min(loc.x + loc.w / 2 - 100, CW - 210), top: Math.max(loc.y - 60, 5) }}>
+            <div className="absolute bg-white rounded-xl px-3 py-2 shadow-lg border-2 border-yellow-400 z-30 max-w-[200px]"
+              style={{ left: bx, top: Math.max(5, Math.min(by, CH - 60)) }}>
               <div className="text-sm font-bold text-gray-800">{bubble.emoji} {bubble.text}</div>
             </div>
           );

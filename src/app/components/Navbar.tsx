@@ -8,6 +8,7 @@ const games = [
   { name: "Paw Patrol Blocks", path: "/blocks", emoji: "🏗️" },
   { name: "Paw Patrol Lego", path: "/lego", emoji: "🧱" },
   { name: "Paw Patrol Driving", path: "/driving", emoji: "🚗" },
+  { name: "Boats", path: "/boats", emoji: "🚢" },
 ];
 
 export default function Navbar() {

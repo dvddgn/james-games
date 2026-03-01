@@ -22,6 +22,13 @@ const games = [
     emoji: "🚗",
     color: "from-green-500 to-green-700",
   },
+  {
+    name: "Paw Patrol Boats",
+    description: "Captain a pup boat through Adventure Bay!",
+    path: "/boats",
+    emoji: "🚢",
+    color: "from-cyan-500 to-cyan-700",
+  },
 ];
 
 export default function Home() {
