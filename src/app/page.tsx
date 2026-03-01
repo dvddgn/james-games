@@ -15,6 +15,13 @@ const games = [
     emoji: "🧱",
     color: "from-red-500 to-red-700",
   },
+  {
+    name: "Paw Patrol Driving",
+    description: "Pick a pup and drive around the Lookout Tower collecting items!",
+    path: "/driving",
+    emoji: "🚗",
+    color: "from-green-500 to-green-700",
+  },
 ];
 
 export default function Home() {
