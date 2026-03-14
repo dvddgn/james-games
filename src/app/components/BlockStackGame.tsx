@@ -261,7 +261,7 @@ export default function BlockStackGame() {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen select-none">
       <h1
-        className="text-4xl font-bold mb-2 text-white drop-shadow-lg"
+        className="text-2xl sm:text-4xl font-bold mb-2 text-white drop-shadow-lg"
         style={{ textShadow: "2px 2px 4px rgba(0,0,0,0.3)" }}
       >
         🐾 Paw Patrol Blocks 🐾

@@ -664,12 +664,12 @@ export default function BoatGame() {
   // ═══════════════════════════════════════════════════════════════
   if (phase === "waterway") {
     return (
-      <div className="flex flex-col items-center min-h-screen px-4 py-8 select-none">
-        <h1 className="text-4xl font-bold text-white mb-2 drop-shadow-lg"
+      <div className="flex flex-col items-center min-h-screen px-3 py-4 sm:py-8 select-none">
+        <h1 className="text-2xl sm:text-4xl font-bold text-white mb-2 drop-shadow-lg"
           style={{ textShadow: "2px 2px 4px rgba(0,0,0,0.3)" }}>
           🚢 Paw Patrol Boats 🚢
         </h1>
-        <p className="text-xl text-white/80 mb-6">Choose your waterway!</p>
+        <p className="text-base sm:text-xl text-white/80 mb-4 sm:mb-6">Choose your waterway!</p>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 max-w-2xl w-full">
           {ALL_WATERWAYS.map((w) => (
             <button key={w.id}
@@ -690,12 +690,12 @@ export default function BoatGame() {
   // ═══════════════════════════════════════════════════════════════
   if (phase === "pup") {
     return (
-      <div className="flex flex-col items-center min-h-screen px-4 py-8 select-none">
-        <h1 className="text-4xl font-bold text-white mb-1 drop-shadow-lg"
+      <div className="flex flex-col items-center min-h-screen px-3 py-4 sm:py-8 select-none">
+        <h1 className="text-2xl sm:text-4xl font-bold text-white mb-1 drop-shadow-lg"
           style={{ textShadow: "2px 2px 4px rgba(0,0,0,0.3)" }}>
           🚢 {waterway.name} 🚢
         </h1>
-        <p className="text-xl text-white/80 mb-6">Pick your boat!</p>
+        <p className="text-base sm:text-xl text-white/80 mb-4 sm:mb-6">Pick your boat!</p>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 max-w-lg">
           {PUPS.map((p) => (
             <button key={p.name} onClick={() => startPlaying(waterway, p)}

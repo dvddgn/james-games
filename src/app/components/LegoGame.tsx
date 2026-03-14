@@ -208,7 +208,7 @@ export default function LegoGame() {
   return (
     <div className="flex flex-col items-center min-h-screen px-4 py-6 select-none">
       <h1
-        className="text-4xl font-bold text-white mb-1 drop-shadow-lg"
+        className="text-2xl sm:text-4xl font-bold text-white mb-1 drop-shadow-lg"
         style={{ textShadow: "2px 2px 4px rgba(0,0,0,0.3)" }}
       >
         🧱 Paw Patrol Lego Builder 🧱

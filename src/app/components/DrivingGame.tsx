@@ -787,12 +787,12 @@ export default function DrivingGame() {
   // ═══════════════════════════════════════════════════════════════
   if (phase === "track") {
     return (
-      <div className="flex flex-col items-center min-h-screen px-4 py-8 select-none">
-        <h1 className="text-4xl font-bold text-white mb-2 drop-shadow-lg"
+      <div className="flex flex-col items-center min-h-screen px-3 py-4 sm:py-8 select-none">
+        <h1 className="text-2xl sm:text-4xl font-bold text-white mb-2 drop-shadow-lg"
           style={{ textShadow: "2px 2px 4px rgba(0,0,0,0.3)" }}>
           🏎️ Paw Patrol Racing 🏎️
         </h1>
-        <p className="text-xl text-white/80 mb-6">Choose your track!</p>
+        <p className="text-base sm:text-xl text-white/80 mb-4 sm:mb-6">Choose your track!</p>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 max-w-2xl w-full">
           {ALL_TRACKS.map((t) => (
             <button key={t.id}
@@ -813,12 +813,12 @@ export default function DrivingGame() {
   // ═══════════════════════════════════════════════════════════════
   if (phase === "pup") {
     return (
-      <div className="flex flex-col items-center min-h-screen px-4 py-8 select-none">
-        <h1 className="text-4xl font-bold text-white mb-1 drop-shadow-lg"
+      <div className="flex flex-col items-center min-h-screen px-3 py-4 sm:py-8 select-none">
+        <h1 className="text-2xl sm:text-4xl font-bold text-white mb-1 drop-shadow-lg"
           style={{ textShadow: "2px 2px 4px rgba(0,0,0,0.3)" }}>
           🏎️ {track.name} 🏎️
         </h1>
-        <p className="text-xl text-white/80 mb-6">Pick your race car!</p>
+        <p className="text-base sm:text-xl text-white/80 mb-4 sm:mb-6">Pick your race car!</p>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 max-w-lg">
           {PUPS.map((p) => (
             <button key={p.name} onClick={() => startPlaying(track, p)}
