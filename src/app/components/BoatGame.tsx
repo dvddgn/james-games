@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { useFullscreen } from "../hooks/useFullscreen";
 
 // ── Sound helpers ─────────────────────────────────────────────────
 function playTone(freq: number, duration: number, type: OscillatorType = "sine", vol = 0.15) {
@@ -469,6 +470,7 @@ function nearLocation(x: number, y: number, locations: LocationZone[]): Location
 
 // ── Main Component ────────────────────────────────────────────────
 export default function BoatGame() {
+  const { ref: fsRef, isFullscreen, toggle: toggleFullscreen } = useFullscreen();
   const [phase, setPhase] = useState<"waterway" | "pup" | "playing">("waterway");
   const [waterway, setWaterway] = useState<WaterwayDef>(ALL_WATERWAYS[0]);
   const waterwayChannel = useMemo(() => waterway.renderChannel(), [waterway.id]);
@@ -724,7 +726,7 @@ export default function BoatGame() {
   // GAMEPLAY SCREEN
   // ═══════════════════════════════════════════════════════════════
   return (
-    <div className="flex flex-col items-center min-h-screen px-4 py-3 select-none">
+    <div ref={fsRef} className="flex flex-col items-center min-h-screen px-4 py-3 select-none" style={{ backgroundColor: '#87CEEB' }}>
       {/* HUD */}
       <div className="flex items-center gap-3 mb-1.5 flex-wrap justify-center">
         <h1 className="text-xl font-bold text-white drop-shadow-lg">
@@ -753,6 +755,10 @@ export default function BoatGame() {
         <button onClick={() => setPhase("waterway")}
           className="px-2 py-1 rounded-lg bg-white/20 text-white text-xs hover:bg-white/30">
           Menu
+        </button>
+        <button onClick={toggleFullscreen}
+          className="px-2 py-1 rounded-lg bg-white/20 text-white text-xs hover:bg-white/30">
+          {isFullscreen ? "↙" : "↗"}
         </button>
       </div>
 

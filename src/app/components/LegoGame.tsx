@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useRef, useEffect } from "react";
+import { useFullscreen } from "../hooks/useFullscreen";
 
 interface BrickType {
   name: string;
@@ -58,6 +59,7 @@ const BOARD_HEIGHT = 480;
 type ToolMode = "brick" | "stamp" | "eraser";
 
 export default function LegoGame() {
+  const { ref: fsRef, isFullscreen, toggle: toggleFullscreen } = useFullscreen();
   const [placedBricks, setPlacedBricks] = useState<PlacedBrick[]>([]);
   const [placedStamps, setPlacedStamps] = useState<PlacedStamp[]>([]);
   const [selectedBrick, setSelectedBrick] = useState<BrickType>(BRICK_TYPES[1]);
@@ -206,7 +208,7 @@ export default function LegoGame() {
   }, []);
 
   return (
-    <div className="flex flex-col items-center min-h-screen px-4 py-6 select-none">
+    <div ref={fsRef} className="flex flex-col items-center min-h-screen px-4 py-6 select-none" style={{ backgroundColor: '#87CEEB' }}>
       <h1
         className="text-2xl sm:text-4xl font-bold text-white mb-1 drop-shadow-lg"
         style={{ textShadow: "2px 2px 4px rgba(0,0,0,0.3)" }}
@@ -252,6 +254,12 @@ export default function LegoGame() {
           className="px-4 py-2 rounded-lg font-bold bg-red-500/80 text-white hover:bg-red-600 transition-colors"
         >
           🗑️ Clear
+        </button>
+        <button
+          onClick={toggleFullscreen}
+          className="px-3 py-2 rounded-lg font-bold bg-white/20 text-white hover:bg-white/30 transition-colors"
+        >
+          {isFullscreen ? "↙" : "↗"}
         </button>
       </div>
 

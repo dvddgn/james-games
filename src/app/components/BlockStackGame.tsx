@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { useFullscreen } from "../hooks/useFullscreen";
 
 interface Pup {
   name: string;
@@ -37,6 +38,7 @@ const SWING_SPEED_INCREMENT = 0.3;
 const MIN_BLOCK_WIDTH = 40;
 
 export default function BlockStackGame() {
+  const { ref: fsRef, isFullscreen, toggle: toggleFullscreen } = useFullscreen();
   const [blocks, setBlocks] = useState<Block[]>([]);
   const [currentBlock, setCurrentBlock] = useState<Block | null>(null);
   const [score, setScore] = useState(0);
@@ -259,7 +261,7 @@ export default function BlockStackGame() {
   }, [message]);
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen select-none">
+    <div ref={fsRef} className="flex flex-col items-center justify-center min-h-screen select-none" style={{ backgroundColor: '#87CEEB' }}>
       <h1
         className="text-2xl sm:text-4xl font-bold mb-2 text-white drop-shadow-lg"
         style={{ textShadow: "2px 2px 4px rgba(0,0,0,0.3)" }}
@@ -267,9 +269,13 @@ export default function BlockStackGame() {
         🐾 Paw Patrol Blocks 🐾
       </h1>
 
-      <div className="flex gap-4 mb-2 text-lg font-bold text-white">
+      <div className="flex gap-4 mb-2 text-lg font-bold text-white items-center">
         <span>Score: {score}</span>
         <span>Blocks: {blocks.filter((b) => b.placed).length}</span>
+        <button onClick={toggleFullscreen}
+          className="px-2 py-1 rounded-lg bg-white/20 text-white text-xs font-normal hover:bg-white/30">
+          {isFullscreen ? "↙" : "↗"}
+        </button>
       </div>
 
       {message && (
