@@ -768,6 +768,11 @@ export default function BoatGame() {
         )}
       </div>
 
+      {/* Landscape hint */}
+      <div className="block sm:hidden landscape:hidden text-center bg-yellow-400/90 text-blue-900 text-xs font-bold px-3 py-1.5 rounded-full mb-1 animate-pulse">
+        📱 Rotate your phone sideways for a better view!
+      </div>
+
       {/* Canvas */}
       <div ref={containerRef} className="w-full" style={{ maxWidth: CW }}>
       <div style={{ height: CH * scale, overflow: 'hidden' }}>
