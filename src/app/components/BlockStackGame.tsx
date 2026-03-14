@@ -48,6 +48,19 @@ export default function BlockStackGame() {
   const [cameraOffset, setCameraOffset] = useState(0);
   const animationRef = useRef<number | null>(null);
   const blockIdRef = useRef(0);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(1);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver((entries) => {
+      const w = entries[0].contentRect.width;
+      setScale(Math.min(w / GAME_WIDTH, 1));
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   const getRandomPup = () => PUPS[Math.floor(Math.random() * PUPS.length)];
 
@@ -265,12 +278,17 @@ export default function BlockStackGame() {
         </div>
       )}
 
+      <div ref={containerRef} className="w-full" style={{ maxWidth: GAME_WIDTH }}>
+      <div style={{ height: GAME_HEIGHT * scale, overflow: 'hidden' }}>
       <div
         className="relative rounded-xl overflow-hidden cursor-pointer border-4 border-white/30"
         style={{
           width: GAME_WIDTH,
           height: GAME_HEIGHT,
           background: "linear-gradient(180deg, #87CEEB 0%, #4A90D9 40%, #2D6B3F 85%, #1B4D2E 100%)",
+          transform: `scale(${scale})`,
+          transformOrigin: 'top left',
+          touchAction: 'none',
         }}
         onClick={handleClick}
       >
@@ -359,6 +377,8 @@ export default function BlockStackGame() {
             </div>
           </div>
         )}
+      </div>
+      </div>
       </div>
 
       <div className="mt-3 text-white/70 text-sm">

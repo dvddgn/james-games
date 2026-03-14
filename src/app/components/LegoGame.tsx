@@ -67,15 +67,31 @@ export default function LegoGame() {
   const [brickCount, setBrickCount] = useState(0);
   const boardRef = useRef<HTMLDivElement>(null);
   const idRef = useRef(0);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(1);
+  const scaleRef = useRef(1);
+  scaleRef.current = scale;
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver((entries) => {
+      const w = entries[0].contentRect.width;
+      setScale(Math.min(w / BOARD_WIDTH, 1));
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   const snapToGrid = (val: number) => Math.round(val / GRID_SIZE) * GRID_SIZE;
 
-  const handleBoardMouseMove = useCallback(
-    (e: React.MouseEvent<HTMLDivElement>) => {
+  const handleBoardPointerMove = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
       if (!boardRef.current) return;
       const rect = boardRef.current.getBoundingClientRect();
-      const x = snapToGrid(e.clientX - rect.left - (toolMode === "brick" ? selectedBrick.width / 2 : 20));
-      const y = snapToGrid(e.clientY - rect.top - (toolMode === "brick" ? selectedBrick.height / 2 : 20));
+      const s = scaleRef.current;
+      const x = snapToGrid((e.clientX - rect.left) / s - (toolMode === "brick" ? selectedBrick.width / 2 : 20));
+      const y = snapToGrid((e.clientY - rect.top) / s - (toolMode === "brick" ? selectedBrick.height / 2 : 20));
       setGhostPosition({ x, y });
     },
     [selectedBrick, toolMode]
@@ -96,14 +112,15 @@ export default function LegoGame() {
     [placedBricks]
   );
 
-  const handleBoardClick = useCallback(
-    (e: React.MouseEvent<HTMLDivElement>) => {
+  const handleBoardPointerDown = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
       if (!boardRef.current) return;
       const rect = boardRef.current.getBoundingClientRect();
 
       if (toolMode === "eraser") {
-        const clickX = e.clientX - rect.left;
-        const clickY = e.clientY - rect.top;
+        const s = scaleRef.current;
+        const clickX = (e.clientX - rect.left) / s;
+        const clickY = (e.clientY - rect.top) / s;
         // Remove brick under cursor
         setPlacedBricks((prev) => {
           const idx = prev.findIndex(
@@ -135,8 +152,9 @@ export default function LegoGame() {
       }
 
       if (toolMode === "stamp") {
-        const x = snapToGrid(e.clientX - rect.left - 20);
-        const y = snapToGrid(e.clientY - rect.top - 20);
+        const s = scaleRef.current;
+        const x = snapToGrid((e.clientX - rect.left) / s - 20);
+        const y = snapToGrid((e.clientY - rect.top) / s - 20);
         if (x >= 0 && y >= 0 && x + 40 <= BOARD_WIDTH && y + 40 <= BOARD_HEIGHT) {
           idRef.current += 1;
           setPlacedStamps((prev) => [
@@ -148,8 +166,9 @@ export default function LegoGame() {
       }
 
       // Brick mode
-      const x = snapToGrid(e.clientX - rect.left - selectedBrick.width / 2);
-      const y = snapToGrid(e.clientY - rect.top - selectedBrick.height / 2);
+      const s = scaleRef.current;
+      const x = snapToGrid((e.clientX - rect.left) / s - selectedBrick.width / 2);
+      const y = snapToGrid((e.clientY - rect.top) / s - selectedBrick.height / 2);
 
       if (
         x >= 0 &&
@@ -286,6 +305,8 @@ export default function LegoGame() {
       )}
 
       {/* Build board */}
+      <div ref={containerRef} className="w-full" style={{ maxWidth: BOARD_WIDTH }}>
+      <div style={{ height: BOARD_HEIGHT * scale, overflow: 'hidden' }}>
       <div
         ref={boardRef}
         className="relative rounded-xl border-4 border-white/30 cursor-crosshair"
@@ -296,10 +317,13 @@ export default function LegoGame() {
           backgroundImage:
             "linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)",
           backgroundSize: `${GRID_SIZE}px ${GRID_SIZE}px`,
+          transform: `scale(${scale})`,
+          transformOrigin: 'top left',
+          touchAction: 'none',
         }}
-        onMouseMove={handleBoardMouseMove}
-        onMouseLeave={() => setGhostPosition(null)}
-        onClick={handleBoardClick}
+        onPointerMove={handleBoardPointerMove}
+        onPointerLeave={() => setGhostPosition(null)}
+        onPointerDown={handleBoardPointerDown}
       >
         {/* Placed bricks */}
         {placedBricks.map((brick) => (
@@ -407,9 +431,11 @@ export default function LegoGame() {
           </div>
         )}
       </div>
+      </div>
+      </div>
 
       <div className="mt-3 text-white/70 text-sm">
-        Click to place bricks or pup stamps. Use eraser to remove.
+        Tap to place bricks or pup stamps. Use eraser to remove.
       </div>
     </div>
   );

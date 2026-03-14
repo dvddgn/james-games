@@ -503,6 +503,48 @@ export default function BoatGame() {
   fuelRef.current = fuel;
   waterwayRef.current = waterway;
 
+  // Responsive scaling
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(1);
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver((entries) => {
+      const w = entries[0].contentRect.width;
+      setScale(Math.min(w / CW, 1));
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  // Action handler (Space key / touch ACT button)
+  const handleActionRef = useRef<() => void>(() => {});
+  const handleAction = () => {
+    const w = waterwayRef.current;
+    if (nearRect(posRef.current.x, posRef.current.y, w.fuelDock, DOCK_RANGE)) {
+      setFuel((f) => { const n = Math.min(f + FUEL_REFILL, MAX_FUEL); fuelRef.current = n; return n; });
+      setOutOfFuel(false);
+      setMsg("Fuel tank filled up! ⛽");
+      playRefuelSound();
+      return;
+    }
+    const loc = nearLocation(posRef.current.x, posRef.current.y, w.locations);
+    if (loc) {
+      setVisited((prev) => {
+        const s = new Set(prev);
+        if (!s.has(loc.id)) { s.add(loc.id); setScore((sc) => sc + loc.reward); }
+        return s;
+      });
+      setBubble({ text: loc.interactionMessage, emoji: loc.interactionEmoji, locId: loc.id });
+      speak(loc.interactionMessage);
+      setTimeout(() => setBubble(null), 3000);
+    } else {
+      setHonking(true); setTimeout(() => setHonking(false), 300);
+      playHornSound();
+    }
+  };
+  handleActionRef.current = handleAction;
+
   const allCollected = collectibles.every((c) => c.collected);
   const allVisited = waterway.locations.every((l) => visited.has(l.id));
   const missionDone = allCollected && allVisited;
@@ -532,28 +574,7 @@ export default function BoatGame() {
       keysRef.current.add(e.key);
       if (e.key === " " && phase === "playing") {
         e.preventDefault();
-        const w = waterwayRef.current;
-        if (nearRect(posRef.current.x, posRef.current.y, w.fuelDock, DOCK_RANGE)) {
-          setFuel((f) => { const n = Math.min(f + FUEL_REFILL, MAX_FUEL); fuelRef.current = n; return n; });
-          setOutOfFuel(false);
-          setMsg("Fuel tank filled up! ⛽");
-          playRefuelSound();
-          return;
-        }
-        const loc = nearLocation(posRef.current.x, posRef.current.y, w.locations);
-        if (loc) {
-          setVisited((prev) => {
-            const s = new Set(prev);
-            if (!s.has(loc.id)) { s.add(loc.id); setScore((sc) => sc + loc.reward); }
-            return s;
-          });
-          setBubble({ text: loc.interactionMessage, emoji: loc.interactionEmoji, locId: loc.id });
-          speak(loc.interactionMessage);
-          setTimeout(() => setBubble(null), 3000);
-        } else {
-          setHonking(true); setTimeout(() => setHonking(false), 300);
-          playHornSound();
-        }
+        handleActionRef.current();
       }
     };
     const up = (e: KeyboardEvent) => keysRef.current.delete(e.key);
@@ -748,8 +769,10 @@ export default function BoatGame() {
       </div>
 
       {/* Canvas */}
+      <div ref={containerRef} className="w-full" style={{ maxWidth: CW }}>
+      <div style={{ height: CH * scale, overflow: 'hidden' }}>
       <div className="relative rounded-xl border-4 border-white/30 overflow-hidden"
-        style={{ width: CW, height: CH, background: "#38BDF8" }}>
+        style={{ width: CW, height: CH, background: "#38BDF8", transform: `scale(${scale})`, transformOrigin: 'top left', touchAction: 'none' }}>
         {/* Wave texture */}
         <div className="absolute inset-0" style={{
           backgroundImage: "radial-gradient(circle, rgba(56,189,248,0.4) 1px, transparent 1px)",
@@ -874,8 +897,45 @@ export default function BoatGame() {
           </div>
         )}
       </div>
+      </div>
+      </div>
 
-      <div className="mt-2 text-white/70 text-xs text-center">
+      {/* Touch Controls */}
+      <div className="flex justify-between items-start mt-2 w-full select-none" style={{ maxWidth: CW * scale, touchAction: 'none' }}>
+        <div className="flex gap-2">
+          <button className="w-14 h-14 rounded-2xl bg-white/20 text-2xl text-white active:bg-white/40"
+            onPointerDown={(e) => { e.preventDefault(); keysRef.current.add("ArrowLeft"); }}
+            onPointerUp={() => keysRef.current.delete("ArrowLeft")}
+            onPointerLeave={() => keysRef.current.delete("ArrowLeft")}
+            onPointerCancel={() => keysRef.current.delete("ArrowLeft")}
+          >◀</button>
+          <button className="w-14 h-14 rounded-2xl bg-white/20 text-2xl text-white active:bg-white/40"
+            onPointerDown={(e) => { e.preventDefault(); keysRef.current.add("ArrowRight"); }}
+            onPointerUp={() => keysRef.current.delete("ArrowRight")}
+            onPointerLeave={() => keysRef.current.delete("ArrowRight")}
+            onPointerCancel={() => keysRef.current.delete("ArrowRight")}
+          >▶</button>
+        </div>
+        <button className="w-14 h-14 rounded-2xl bg-yellow-500/40 text-xl text-white active:bg-yellow-500/60 font-bold"
+          onPointerDown={(e) => { e.preventDefault(); handleAction(); }}
+        >ACT</button>
+        <div className="flex gap-2">
+          <button className="w-14 h-14 rounded-2xl bg-green-500/30 text-2xl text-white active:bg-green-500/50"
+            onPointerDown={(e) => { e.preventDefault(); keysRef.current.add("ArrowUp"); }}
+            onPointerUp={() => keysRef.current.delete("ArrowUp")}
+            onPointerLeave={() => keysRef.current.delete("ArrowUp")}
+            onPointerCancel={() => keysRef.current.delete("ArrowUp")}
+          >▲</button>
+          <button className="w-14 h-14 rounded-2xl bg-red-500/30 text-2xl text-white active:bg-red-500/50"
+            onPointerDown={(e) => { e.preventDefault(); keysRef.current.add("ArrowDown"); }}
+            onPointerUp={() => keysRef.current.delete("ArrowDown")}
+            onPointerLeave={() => keysRef.current.delete("ArrowDown")}
+            onPointerCancel={() => keysRef.current.delete("ArrowDown")}
+          >▼</button>
+        </div>
+      </div>
+
+      <div className="mt-2 text-white/70 text-xs text-center max-sm:hidden">
         Arrow keys / WASD to steer. Space to interact & refuel. Collect everything & visit all locations!
       </div>
     </div>
